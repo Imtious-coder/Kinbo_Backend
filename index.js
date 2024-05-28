@@ -101,6 +101,16 @@ app.post("/addproduct", async (req, res) => {
   })
 });
 
+// PRODUCT DELETE FUNCTIONALITY
+app.post("/removeproduct", async (req, res) => {
+  await Product.findOneAndDelete({id:req.body.id});
+  console.log("Product Removed.");
+  res.json({
+    success: true,
+    name: req.body.name,
+  })
+})
+
 // APP
 app.listen(port, (err) => {
   if(!err) {

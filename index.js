@@ -10,25 +10,24 @@ const cors = require("cors");
 app.use(express.json());
 app.use(cors());
 
-// Database connection with mongoDB
+// DATABASE CONNECTION (mongodb)
 mongoose.connect("mongodb+srv://kinbo:kinbo@cluster0.azdemqf.mongodb.net/kinbo")
 
-// API
+// API (home-page)
 app.get("/", (req, res) => {
   res.send("Backend is running perfeclty.")
 });
 
-// Image storing functionality 
+// IMAGE UPLOAD FUNCTIONALITY 
 const storage = multer.diskStorage({
   destination: "./Images",
   filename: (req, file, cb) => {
     return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
   }
 });
-
 const upload = multer({ storage: storage});
 
-// Creating upload enpoint for images
+// UPLOAD ENDPOINT FOR IMAGES
 app.use("/images", express.static("./Images"));
 
 app.post("/upload", upload.single("product"), (req, res) => {
@@ -38,7 +37,7 @@ app.post("/upload", upload.single("product"), (req, res) => {
   })
 });
 
-// Schema for creating products.
+// SCHEMA (create-product)
 const Product = mongoose.model("Product", {
   id: {
     type: Number,
@@ -74,6 +73,7 @@ const Product = mongoose.model("Product", {
   },
 })
 
+// ADD PRODUCT FUNCTIONALITY
 app.post("/addproduct", async (req, res) => {
   let products = await Product.find({});
   let id;
@@ -101,7 +101,7 @@ app.post("/addproduct", async (req, res) => {
   })
 });
 
-// PRODUCT DELETE FUNCTIONALITY
+// DELETE PRODUCT FUNCTIONALITY
 app.post("/removeproduct", async (req, res) => {
   await Product.findOneAndDelete({id:req.body.id});
   console.log("Product Removed.");
@@ -109,6 +109,13 @@ app.post("/removeproduct", async (req, res) => {
     success: true,
     name: req.body.name,
   })
+})
+
+// ALL PRODUCTS GET FUNCTIONALITY
+app.post("/allproducts", async (req, res) => {
+  let products = await Product.find({})
+  console.log("ALL Products Fetched.");
+  res.send(products);
 })
 
 // APP

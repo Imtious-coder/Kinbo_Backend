@@ -6,12 +6,13 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const cors = require("cors");
+const { error } = require("console");
 
 app.use(express.json());
 app.use(cors());
 
 // DATABASE CONNECTION (mongodb)
-mongoose.connect("mongodb+srv://kinbo:kinbo@cluster0.azdemqf.mongodb.net/kinbo")
+mongoose.connect("mongodb+srv://kinbo:kinbo@cluster0.azdemqf.mongodb.net/kinbo");
 
 // API (home-page)
 app.get("/", (req, res) => {
@@ -71,7 +72,27 @@ const Product = mongoose.model("Product", {
     type: Boolean,
     default: true,
   },
-})
+});
+// SCHEMA (create-user)
+const Users = mongoose.model("Users", {
+  name: {
+    type: String,
+  },
+  email : {
+    type: String,
+    unique: true,
+  },
+  password : {
+    type: String,
+  },
+  cartData : {
+    type: Object,
+  },
+  date : {
+    type: Date,
+    default: Date.now(),
+  },
+});
 
 // ADD PRODUCT FUNCTIONALITY
 app.post("/addproduct", async (req, res) => {
@@ -109,14 +130,59 @@ app.post("/removeproduct", async (req, res) => {
     success: true,
     name: req.body.name,
   })
-})
+});
 
 // ALL PRODUCTS GET FUNCTIONALITY
-app.post("/allproducts", async (req, res) => {
-  let products = await Product.find({})
+app.get("/allproducts", async (req, res) => {
+  let products = await Product.find({});
   console.log("ALL Products Fetched.");
   res.send(products);
-})
+});
+// app.post("/allproducts", async (req, res) => {
+//   let products = await Product.find({})
+//   console.log("ALL Products Fetched.");
+//   res.send(products);
+// })
+
+// NEW USER SIGNUP FUNCTIONALITY
+app.post("/signup", async (req, res) => {
+  // check existing user
+  let check = await Users.findOne({email: req.body.email});
+  if (check) {
+    return res.status(400).json({
+      success: false,
+      error: "User already exist.",
+    })
+  };
+
+  // cart details
+  let cart = {};
+  for (let i = 0; i < 300; i++) {
+    cart[i] = 0;
+  };
+
+  // new user create
+  const user = new Users({
+    name: req.body.username,
+    email: req.body.email,
+    password: req.body.password,
+    cartData: cart,
+  });
+
+  // token generate
+  await user.save();
+  const data = {
+    user: {
+      id: user.id,
+    }
+  };
+  const token = jwt.sign(data, "secret_ecom");
+  res.json({
+    success: true,
+    token
+  });
+
+});
 
 // APP
 app.listen(port, (err) => {
@@ -126,3 +192,48 @@ app.listen(port, (err) => {
     console.log("Something is wrong" + err)
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

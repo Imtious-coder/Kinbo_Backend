@@ -205,16 +205,30 @@ app.post("/login", async (req, res) => {
     } else {
       res.json({
         success:false,
-        errors: "Wrong Password",
+        error: "Wrong Password",
       });
     }
   } else {
     res.json({
       success: false,
-      errors: "Wrong Email ID"
+      error: "Wrong Email ID"
     });
   }
 });
+
+app.get("/newcollection", async (req, res) => {
+  let products = await Product.find({});
+  let newcollection = products.slice(1).slice(-8);
+  console.log("New Collection");
+  res.send(newcollection);
+});
+
+app.get("/popularInWomen", async (req, res) => {
+  let products = await Product.find({category: "women"});
+  let popularInWomen = products.slice( 0, 4 );
+  console.log("Popular In Women");
+  res.send(popularInWomen);
+})
 
 // APP
 app.listen(port, (err) => {

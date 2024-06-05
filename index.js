@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const cors = require("cors");
-const { error } = require("console");
+const { error, log } = require("console");
 
 app.use(express.json());
 app.use(cors());
@@ -229,6 +229,31 @@ app.get("/popularInWomen", async (req, res) => {
   console.log("Popular In Women");
   res.send(popularInWomen);
 })
+
+// const fetchUser = async (req, res, next) => {
+//   const token = req.header("auth-token");
+//   if (!token) {
+//     res.status(401).send({error: "Wrong token"})
+//   } else {
+//     try{
+//       const data = jwt.verify(token, "secret_ecom");
+//       req.user = data.user;
+//       next();
+//     } catch (error) {
+//       res.status(401).send({error:"Token is invalid"})
+//     }
+//   }
+// };
+
+// app.post("/addtocart", fetchUser, async (req, res) => {
+//   let userData = await Users.findOne({
+//     _id: req.user.id,
+//   });
+//   userData.cartData[req.body.itemId] + 1;
+//   await Users.findOneAndUpdate({_id:req.user.id}, {cartData:userData.cartData});
+//   res.send("Added");
+//   console.log(req.body, req.user);
+// });
 
 // APP
 app.listen(port, (err) => {

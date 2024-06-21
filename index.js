@@ -12,30 +12,41 @@ app.use(express.json());
 app.use(cors());
 
 // DATABASE CONNECTION (mongodb)
-mongoose.connect("mongodb+srv://kinbo:kinbo@cluster0.azdemqf.mongodb.net/kinbo");
+mongoose.connect(
+  "mongodb+srv://kinbo:kinbo@cluster0.azdemqf.mongodb.net/kinbo"
+);
 
 // API (home-page)
 app.get("/", (req, res) => {
-  res.send("Backend is running perfeclty.")
+  res.send("Backend is running perfeclty.");
 });
 
-// IMAGE UPLOAD FUNCTIONALITY 
+// IMAGE UPLOAD FUNCTIONALITY
 const storage = multer.diskStorage({
   destination: "./Images",
   filename: (req, file, cb) => {
-    return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
-  }
+    return cb(
+      null,
+      `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`
+    );
+  },
 });
-const upload = multer({ storage: storage});
+const upload = multer({ storage: storage });
 
 // UPLOAD ENDPOINT FOR IMAGES
 app.use("/images", express.static("./Images"));
 
-app.post("/upload", upload.single("product"), (req, res) => {
+app.post("/upload", upload.array("product", 4), (req, res) => {
+  console.log("Files received:", req.files);
+  console.log("Request body:", req.body);
+
+  const imageUrls = req.files.map(
+    (file) => `http://localhost:${port}/images/${file.filename}`
+  );
   res.json({
-    success : 1,
-    image_url: `http://localhost:${port}/images/${req.file.filename}`
-  })
+    success: 1,
+    image_urls: imageUrls,
+  });
 });
 
 // SCHEMA (create-product)
@@ -48,11 +59,43 @@ const Product = mongoose.model("Product", {
     type: String,
     required: true,
   },
-  image: {
+  description: {
     type: String,
     required: true,
   },
+  image: {
+    type: [String],
+    required: true,
+  },
   category: {
+    type: String,
+    required: true,
+  },
+  type: {
+    type: String,
+    required: true,
+  },
+  brand: {
+    type: String,
+    required: true,
+  },
+  tags: {
+    type: String,
+    required: true,
+  },
+  size: {
+    type: [String],
+    required: true,
+  },
+  total_items: {
+    type: Number,
+    required: true,
+  },
+  availability: {
+    type: String,
+    default: true,
+  },
+  colors: {
     type: String,
     required: true,
   },
@@ -68,27 +111,23 @@ const Product = mongoose.model("Product", {
     type: Date,
     default: Date.now,
   },
-  available: {
-    type: Boolean,
-    default: true,
-  },
 });
 // SCHEMA (create-user)
 const Users = mongoose.model("Users", {
   name: {
     type: String,
   },
-  email : {
+  email: {
     type: String,
     unique: true,
   },
-  password : {
+  password: {
     type: String,
   },
-  cartData : {
+  cartData: {
     type: Object,
   },
-  date : {
+  date: {
     type: Date,
     default: Date.now(),
   },
@@ -98,20 +137,43 @@ const Users = mongoose.model("Users", {
 app.post("/addproduct", async (req, res) => {
   let products = await Product.find({});
   let id;
-  if(products.length > 0) {
+  if (products.length > 0) {
     let last_product_array = products.slice(-1);
     let last_product = last_product_array[0];
     id = last_product.id + 1;
   } else {
     id = 1;
   }
+  const {
+    name,
+    image,
+    type,
+    brand,
+    size,
+    colors,
+    tags,
+    category,
+    new_price,
+    old_price,
+    availability,
+    description,
+    total_items,
+  } = req.body;
   const product = new Product({
     id: id,
-    name: req.body.name,
-    image: req.body.image,
-    category: req.body.category,
-    new_price: req.body.new_price,
-    old_price: req.body.old_price,
+    name: name,
+    image: image,
+    type: type,
+    brand: brand,
+    size: size,
+    colors: colors,
+    tags: tags,
+    category: category,
+    new_price: new_price,
+    old_price: old_price,
+    availability: availability,
+    description: description,
+    total_items: total_items,
   });
   console.log(product, "Created product");
   await product.save();
@@ -119,17 +181,17 @@ app.post("/addproduct", async (req, res) => {
   res.json({
     success: true,
     name: req.body.name,
-  })
+  });
 });
 
 // DELETE PRODUCT FUNCTIONALITY
 app.post("/removeproduct", async (req, res) => {
-  await Product.findOneAndDelete({id:req.body.id});
+  await Product.findOneAndDelete({ id: req.body.id });
   console.log("Product Removed.");
   res.json({
     success: true,
     name: req.body.name,
-  })
+  });
 });
 
 // ALL PRODUCTS GET FUNCTIONALITY
@@ -138,6 +200,7 @@ app.get("/allproducts", async (req, res) => {
   console.log("ALL Products Fetched.");
   res.send(products);
 });
+
 // app.post("/allproducts", async (req, res) => {
 //   let products = await Product.find({})
 //   console.log("ALL Products Fetched.");
@@ -147,19 +210,19 @@ app.get("/allproducts", async (req, res) => {
 // NEW USER SIGNUP FUNCTIONALITY
 app.post("/signup", async (req, res) => {
   // check existing user
-  let check = await Users.findOne({email: req.body.email});
+  let check = await Users.findOne({ email: req.body.email });
   if (check) {
     return res.status(400).json({
       success: false,
       error: "User already exist.",
-    })
-  };
+    });
+  }
 
   // cart details
   let cart = {};
   for (let i = 0; i < 300; i++) {
     cart[i] = 0;
-  };
+  }
 
   // new user create
   const user = new Users({
@@ -174,44 +237,43 @@ app.post("/signup", async (req, res) => {
   const data = {
     user: {
       id: user.id,
-    }
+    },
   };
   const token = jwt.sign(data, "secret_ecom");
   res.json({
     success: true,
-    token
+    token,
   });
-
 });
 
 // LOGIN FUNCTIONALITY
 app.post("/login", async (req, res) => {
   let user = await Users.findOne({
-    email: req.body.email
+    email: req.body.email,
   });
-  if(user) {
+  if (user) {
     const passCompare = req.body.password === user.password;
-    if(passCompare) {
+    if (passCompare) {
       const data = {
         user: {
-          id: user.id
-        }
-      }
+          id: user.id,
+        },
+      };
       const token = jwt.sign(data, "secret_ecom");
       res.json({
-        success:true,
+        success: true,
         token,
       });
     } else {
       res.json({
-        success:false,
+        success: false,
         error: "Wrong Password",
       });
     }
   } else {
     res.json({
       success: false,
-      error: "Wrong Email ID"
+      error: "Wrong Email ID",
     });
   }
 });
@@ -224,11 +286,11 @@ app.get("/newcollection", async (req, res) => {
 });
 
 app.get("/popularInWomen", async (req, res) => {
-  let products = await Product.find({category: "women"});
-  let popularInWomen = products.slice( 0, 4 );
+  let products = await Product.find({ category: "women" });
+  let popularInWomen = products.slice(0, 4);
   console.log("Popular In Women");
   res.send(popularInWomen);
-})
+});
 
 // const fetchUser = async (req, res, next) => {
 //   const token = req.header("auth-token");
@@ -257,54 +319,9 @@ app.get("/popularInWomen", async (req, res) => {
 
 // APP
 app.listen(port, (err) => {
-  if(!err) {
-    console.log("Server is running on port " + port)
+  if (!err) {
+    console.log("Server is running on port " + port);
   } else {
-    console.log("Something is wrong" + err)
+    console.log("Something is wrong" + err);
   }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
